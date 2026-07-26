@@ -22,6 +22,8 @@ public record PropertyResponse(
         Double latitude,
         Double longitude,
         PropertyStatus status,
+        Double averageRating,
+        Integer reviewCount,
         HostSummaryResponse host,
         List<PropertyImageResponse> images,
         Set<AmenityResponse> amenities,

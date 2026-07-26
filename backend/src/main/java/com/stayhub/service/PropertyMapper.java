@@ -34,6 +34,8 @@ public final class PropertyMapper {
                 property.getLatitude(),
                 property.getLongitude(),
                 property.getStatus(),
+                property.getAverageRating(),
+                property.getReviewCount(),
                 toHostSummary(property.getHost()),
                 toImageResponses(property.getImages()),
                 toAmenityResponses(property.getAmenities()),

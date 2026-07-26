@@ -95,6 +95,16 @@ public class Property extends BaseEntity {
     @Column(nullable = false, length = 20)
     private PropertyStatus status;
 
+    @NotNull
+    @Column(nullable = false)
+    @Builder.Default
+    private Double averageRating = 0.0;
+
+    @NotNull
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer reviewCount = 0;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "host_id", nullable = false)
     private User host;

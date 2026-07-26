@@ -5,7 +5,9 @@ import com.stayhub.dto.PageResponse;
 import com.stayhub.dto.PropertyImageResponse;
 import com.stayhub.dto.PropertyResponse;
 import com.stayhub.dto.PropertySearchCriteria;
+import com.stayhub.dto.ReviewResponse;
 import com.stayhub.service.PropertyService;
+import com.stayhub.service.ReviewService;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -24,9 +26,11 @@ import java.util.List;
 public class PropertyController {
 
     private final PropertyService propertyService;
+    private final ReviewService reviewService;
 
-    public PropertyController(PropertyService propertyService) {
+    public PropertyController(PropertyService propertyService, ReviewService reviewService) {
         this.propertyService = propertyService;
+        this.reviewService = reviewService;
     }
 
     @GetMapping("/{propertyId}")
@@ -48,6 +52,13 @@ public class PropertyController {
     @GetMapping("/{propertyId}/amenities")
     public ResponseEntity<List<AmenityResponse>> getAmenities(@PathVariable Long propertyId) {
         return ResponseEntity.ok(propertyService.getAmenities(propertyId));
+    }
+
+    @GetMapping("/{propertyId}/reviews")
+    public ResponseEntity<PageResponse<ReviewResponse>> getPropertyReviews(
+            @PathVariable Long propertyId,
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(reviewService.getPropertyReviews(propertyId, pageable));
     }
 
     @GetMapping("/search")

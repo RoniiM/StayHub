@@ -46,6 +46,30 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage(), null, request);
     }
 
+    @ExceptionHandler(BookingOwnershipException.class)
+    public ResponseEntity<ErrorResponse> handleBookingOwnershipException(BookingOwnershipException ex,
+                                                                           HttpServletRequest request) {
+        return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage(), null, request);
+    }
+
+    @ExceptionHandler(InvalidBookingRequestException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidBookingRequestException(InvalidBookingRequestException ex,
+                                                                                HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), null, request);
+    }
+
+    @ExceptionHandler(BookingOverlapException.class)
+    public ResponseEntity<ErrorResponse> handleBookingOverlapException(BookingOverlapException ex,
+                                                                         HttpServletRequest request) {
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), null, request);
+    }
+
+    @ExceptionHandler(InvalidBookingStatusTransitionException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidBookingStatusTransitionException(
+            InvalidBookingStatusTransitionException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), null, request);
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex,
                                                                                  HttpServletRequest request) {

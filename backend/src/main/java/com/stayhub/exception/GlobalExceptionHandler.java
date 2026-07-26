@@ -70,6 +70,18 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), null, request);
     }
 
+    @ExceptionHandler(ReviewOwnershipException.class)
+    public ResponseEntity<ErrorResponse> handleReviewOwnershipException(ReviewOwnershipException ex,
+                                                                          HttpServletRequest request) {
+        return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage(), null, request);
+    }
+
+    @ExceptionHandler(DuplicateReviewException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateReviewException(DuplicateReviewException ex,
+                                                                          HttpServletRequest request) {
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), null, request);
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex,
                                                                                  HttpServletRequest request) {

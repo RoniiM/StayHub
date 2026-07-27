@@ -14,12 +14,14 @@ import com.stayhub.exception.DuplicateReviewException;
 import com.stayhub.exception.InvalidBookingRequestException;
 import com.stayhub.exception.ResourceNotFoundException;
 import com.stayhub.exception.ReviewOwnershipException;
+import com.stayhub.mapper.ReviewMapper;
 import com.stayhub.repository.BookingRepository;
 import com.stayhub.repository.PropertyRepository;
 import com.stayhub.repository.ReviewRepository;
 import com.stayhub.repository.UserRepository;
-import com.stayhub.service.ReviewMapper;
 import com.stayhub.service.ReviewService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -29,19 +31,24 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class ReviewServiceImpl implements ReviewService {
 
+    private static final Logger log = LoggerFactory.getLogger(ReviewServiceImpl.class);
+
     private final ReviewRepository reviewRepository;
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final PropertyRepository propertyRepository;
+    private final ReviewMapper reviewMapper;
 
     public ReviewServiceImpl(ReviewRepository reviewRepository,
                               BookingRepository bookingRepository,
                               UserRepository userRepository,
-                              PropertyRepository propertyRepository) {
+                              PropertyRepository propertyRepository,
+                              ReviewMapper reviewMapper) {
         this.reviewRepository = reviewRepository;
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
         this.propertyRepository = propertyRepository;
+        this.reviewMapper = reviewMapper;
     }
 
     @Override
@@ -74,7 +81,8 @@ public class ReviewServiceImpl implements ReviewService {
         Review saved = reviewRepository.save(review);
         recalculatePropertyRating(booking.getProperty());
 
-        return ReviewMapper.toResponse(saved);
+        log.info("Review created: reviewId={}, propertyId={}, guestId={}", saved.getId(), booking.getProperty().getId(), guestId);
+        return reviewMapper.toResponse(saved);
     }
 
     @Override
@@ -82,12 +90,12 @@ public class ReviewServiceImpl implements ReviewService {
         Review review = getReviewOrThrow(reviewId);
         validateReviewOwnership(guestId, review);
 
-        review.setRating(request.rating());
-        review.setComment(request.comment());
+        reviewMapper.updateReviewFromRequest(request, review);
 
         recalculatePropertyRating(review.getProperty());
 
-        return ReviewMapper.toResponse(review);
+        log.info("Review updated: reviewId={}, guestId={}", reviewId, guestId);
+        return reviewMapper.toResponse(review);
     }
 
     @Override
@@ -99,12 +107,13 @@ public class ReviewServiceImpl implements ReviewService {
         reviewRepository.delete(review);
 
         recalculatePropertyRating(property);
+        log.info("Review deleted: reviewId={}, guestId={}", reviewId, guestId);
     }
 
     @Override
     @Transactional(readOnly = true)
     public ReviewResponse getReviewById(Long reviewId) {
-        return ReviewMapper.toResponse(getReviewOrThrow(reviewId));
+        return reviewMapper.toResponse(getReviewOrThrow(reviewId));
     }
 
     @Override
@@ -114,7 +123,7 @@ public class ReviewServiceImpl implements ReviewService {
             throw new ResourceNotFoundException("Property not found with id: " + propertyId);
         }
         Page<Review> page = reviewRepository.findByPropertyId(propertyId, pageable);
-        return PageResponse.from(page.map(ReviewMapper::toResponse));
+        return PageResponse.from(page.map(reviewMapper::toResponse));
     }
 
     private void recalculatePropertyRating(Property property) {

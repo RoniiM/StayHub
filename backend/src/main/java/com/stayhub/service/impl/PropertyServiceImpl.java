@@ -16,12 +16,16 @@ import com.stayhub.entity.User;
 import com.stayhub.entity.enums.PropertyStatus;
 import com.stayhub.exception.PropertyOwnershipException;
 import com.stayhub.exception.ResourceNotFoundException;
+import com.stayhub.mapper.AmenityMapper;
+import com.stayhub.mapper.PropertyImageMapper;
+import com.stayhub.mapper.PropertyMapper;
 import com.stayhub.repository.AmenityRepository;
 import com.stayhub.repository.PropertyRepository;
 import com.stayhub.repository.PropertySpecifications;
 import com.stayhub.repository.UserRepository;
-import com.stayhub.service.PropertyMapper;
 import com.stayhub.service.PropertyService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -36,16 +40,27 @@ import java.util.stream.Collectors;
 @Transactional
 public class PropertyServiceImpl implements PropertyService {
 
+    private static final Logger log = LoggerFactory.getLogger(PropertyServiceImpl.class);
+
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
     private final AmenityRepository amenityRepository;
+    private final PropertyMapper propertyMapper;
+    private final PropertyImageMapper propertyImageMapper;
+    private final AmenityMapper amenityMapper;
 
     public PropertyServiceImpl(PropertyRepository propertyRepository,
                                 UserRepository userRepository,
-                                AmenityRepository amenityRepository) {
+                                AmenityRepository amenityRepository,
+                                PropertyMapper propertyMapper,
+                                PropertyImageMapper propertyImageMapper,
+                                AmenityMapper amenityMapper) {
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.amenityRepository = amenityRepository;
+        this.propertyMapper = propertyMapper;
+        this.propertyImageMapper = propertyImageMapper;
+        this.amenityMapper = amenityMapper;
     }
 
     @Override
@@ -70,53 +85,46 @@ public class PropertyServiceImpl implements PropertyService {
                 .build();
 
         Property saved = propertyRepository.save(property);
-        return PropertyMapper.toResponse(saved);
+        log.info("Property created: propertyId={}, hostId={}", saved.getId(), hostId);
+        return propertyMapper.toResponse(saved);
     }
 
     @Override
     public PropertyResponse updateProperty(Long hostId, Long propertyId, UpdatePropertyRequest request) {
         Property property = getOwnedPropertyOrThrow(hostId, propertyId);
 
-        property.setTitle(request.title());
-        property.setDescription(request.description());
-        property.setPricePerNight(request.pricePerNight());
-        property.setMaxGuests(request.maxGuests());
-        property.setBedrooms(request.bedrooms());
-        property.setBathrooms(request.bathrooms());
-        property.setCity(request.city());
-        property.setCountry(request.country());
-        property.setStreetAddress(request.streetAddress());
-        property.setPostalCode(request.postalCode());
-        property.setLatitude(request.latitude());
-        property.setLongitude(request.longitude());
+        propertyMapper.updatePropertyFromRequest(request, property);
 
-        return PropertyMapper.toResponse(property);
+        log.info("Property updated: propertyId={}, hostId={}", propertyId, hostId);
+        return propertyMapper.toResponse(property);
     }
 
     @Override
     public void deleteProperty(Long hostId, Long propertyId) {
         Property property = getOwnedPropertyOrThrow(hostId, propertyId);
         propertyRepository.delete(property);
+        log.info("Property deleted: propertyId={}, hostId={}", propertyId, hostId);
     }
 
     @Override
     @Transactional(readOnly = true)
     public PropertyResponse getPropertyById(Long propertyId) {
-        return PropertyMapper.toResponse(getPropertyOrThrow(propertyId));
+        return propertyMapper.toResponse(getPropertyOrThrow(propertyId));
     }
 
     @Override
     @Transactional(readOnly = true)
     public PageResponse<PropertyResponse> getPublishedProperties(Pageable pageable) {
         Page<Property> page = propertyRepository.findByStatus(PropertyStatus.PUBLISHED, pageable);
-        return PageResponse.from(page.map(PropertyMapper::toResponse));
+        return PageResponse.from(page.map(propertyMapper::toResponse));
     }
 
     @Override
     public PropertyResponse updateStatus(Long hostId, Long propertyId, PropertyStatus status) {
         Property property = getOwnedPropertyOrThrow(hostId, propertyId);
         property.setStatus(status);
-        return PropertyMapper.toResponse(property);
+        log.info("Property status changed: propertyId={}, hostId={}, newStatus={}", propertyId, hostId, status);
+        return propertyMapper.toResponse(property);
     }
 
     @Override
@@ -131,7 +139,7 @@ public class PropertyServiceImpl implements PropertyService {
 
         property.getImages().add(image);
 
-        return PropertyMapper.toImageResponse(image);
+        return propertyImageMapper.toResponse(image);
     }
 
     @Override
@@ -151,7 +159,9 @@ public class PropertyServiceImpl implements PropertyService {
     @Transactional(readOnly = true)
     public List<PropertyImageResponse> getImages(Long propertyId) {
         Property property = getPropertyOrThrow(propertyId);
-        return PropertyMapper.toImageResponses(property.getImages());
+        return property.getImages().stream()
+                .map(propertyImageMapper::toResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -169,7 +179,7 @@ public class PropertyServiceImpl implements PropertyService {
         property.setAmenities(new HashSet<>(amenities));
 
         return amenities.stream()
-                .map(PropertyMapper::toAmenityResponse)
+                .map(amenityMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
@@ -178,7 +188,7 @@ public class PropertyServiceImpl implements PropertyService {
     public List<AmenityResponse> getAmenities(Long propertyId) {
         Property property = getPropertyOrThrow(propertyId);
         return property.getAmenities().stream()
-                .map(PropertyMapper::toAmenityResponse)
+                .map(amenityMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
@@ -186,7 +196,7 @@ public class PropertyServiceImpl implements PropertyService {
     @Transactional(readOnly = true)
     public PageResponse<PropertyResponse> searchProperties(PropertySearchCriteria criteria, Pageable pageable) {
         Page<Property> page = propertyRepository.findAll(PropertySpecifications.search(criteria), pageable);
-        return PageResponse.from(page.map(PropertyMapper::toResponse));
+        return PageResponse.from(page.map(propertyMapper::toResponse));
     }
 
     private User getHostOrThrow(Long hostId) {

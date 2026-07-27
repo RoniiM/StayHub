@@ -64,9 +64,9 @@ All entities extend a common `BaseEntity` (`id`, `createdAt`, `updatedAt`) popul
 Database and JWT settings live in `backend/src/main/resources/application.properties`:
 
 ```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/stayhub
-spring.datasource.username=postgres
-spring.datasource.password=password
+spring.datasource.url=jdbc:{jdbc string here}
+spring.datasource.username={username here}
+spring.datasource.password={password here}
 
 jwt.secret=<base64-encoded HMAC key>
 jwt.access-token-expiration-ms=900000
